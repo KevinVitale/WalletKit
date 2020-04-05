@@ -132,32 +132,6 @@ func _GeneratePublicKey(data: Data, compressed: Bool) -> Result<Data, KeyDerivat
     return .success(Data(publicKeyBytes))
 }
 
-/*
-func _GenerateIntermediateKey(factor bytes: [UInt8], from data: Data) -> Result<Data, KeyDerivatorError> {
-    guard let ctx = secp256k1_context_create(UInt32(SECP256K1_CONTEXT_NONE)) else {
-        return .failure(.keyDerivationFailed("Failed to generate a public key: invalid context."))
-    }
-    
-    defer { secp256k1_context_destroy(ctx) }
-    
-    var publicKey = secp256k1_pubkey()
-    var inputData = Array(data)
-
-    guard secp256k1_ec_pubkey_parse(ctx, &publicKey, &inputData, data.count) == 1 else {
-        return .failure(.keyDerivationParsingPublicKeyFailed(publicKey: data))
-    }
-    
-    var result = [UInt8](repeating: 0, count: 32)
-    guard secp256k1_ecdh(ctx, &result, &publicKey, bytes) == 1 else {
-        return .failure(.keyDerivationParsingPublicKeyFailed(publicKey: data))
-    }
-    
-
-    let intermKeyNum = BigUInt(Data(result)) + BigUInt(data)
-    return .success(intermKeyNum.serialize())
-}
- */
-
 //------------------------------------------------------------------------------
 #if canImport(CryptoKit)
 import CryptoKit

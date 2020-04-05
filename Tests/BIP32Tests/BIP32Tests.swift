@@ -36,7 +36,6 @@ final class BIP32Tests: XCTestCase {
             print("Fingerprint:", rootKey.fingerprint.bytes)
             print("Index:", rootKey.index)
             print("Chain Code:", rootKey.chainCode.hexString, "\(rootKey.chainCode)")
-            print("Key:", rootKey.key.hexString, "\(rootKey.key)")
             print("")
         }
     }
@@ -63,7 +62,6 @@ final class BIP32Tests: XCTestCase {
             print("Fingerprint:", rootKey.fingerprint.bytes)
             print("Index:", rootKey.index)
             print("Chain Code:", rootKey.chainCode.hexString, "\(rootKey.chainCode)")
-            print("Key:", rootKey.key.hexString, "\(rootKey.key)")
             print("")
         }
     }
@@ -126,5 +124,9 @@ final class BIP32Tests: XCTestCase {
     
     func testRootKeyInstantiatedAsPublicKeyFails() throws {
         XCTAssertThrowsError(try DefaultKeyDerivator.rootKey(fromHexString: "000102030405060708090a0b0c0d0e0f", version: .mainnet(.public)).get())
+    }
+    
+    func testExtendedKeyAtMaxDepthFails() throws {
+        XCTAssertThrowsError(try KeyDepth(wrappedValue: .max).nextDepth())
     }
 }
