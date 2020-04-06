@@ -1,6 +1,8 @@
 import Foundation
 
-public struct XCTTestJSON: Decodable, Collection {
+public struct BIP39TestVectors: XCTFixtureProvider, Decodable, Collection {
+    public static var fileName: String = "BIP39TestVectors.json"
+    
     enum CodingKeys: String, CodingKey {
         case vocabulary = "english"
     }

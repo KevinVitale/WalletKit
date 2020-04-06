@@ -2,9 +2,8 @@ import XCTHelpers
 
 final class MnemonicTests: XCTestCase {
     func testVectorFixtures() throws {
-        let fixture = try XCTFixture<XCTTestJSON>(fileNamed: "TestVectors.json")
-        let tests   = try fixture.loadTests()
-        
+        let tests = try XCTFixture<BIP39TestVectors>.loadTests()
+
         for (idx, vector) in tests.enumerated() {
             let mnemonic = try Mnemonic(entropy: vector.inputEntropy)
             let seedDflt = try mnemonic.seed(passphrase: "TREZOR").map(String.init(hexEncoding:)).get()

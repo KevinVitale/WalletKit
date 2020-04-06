@@ -4,7 +4,7 @@ public struct XCTFixture<JSON: Decodable> {
     public enum Error: Swift.Error {
         case fileNotFound(String)
     }
-    
+
     private let _fileURL: URL
     
     public init(fileNamed name: String) throws {
@@ -24,3 +24,14 @@ public struct XCTFixture<JSON: Decodable> {
         return try decoder.decode(JSON.self, from: jsonData)
     }
 }
+
+public protocol XCTFixtureProvider: Decodable {
+    static var fileName: String { get }
+}
+
+extension XCTFixture where JSON: XCTFixtureProvider {
+    public static func loadTests() throws -> JSON {
+        try XCTFixture(fileNamed: JSON.fileName).loadTests()
+    }
+}
+
