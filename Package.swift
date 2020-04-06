@@ -10,16 +10,10 @@ let package = Package(
       .iOS(.v13),
     ],
     products: [
-      // .library(name: "WalletKit", type: .static, targets: ["WalletKit"]),
-      // .library(name: "XCTWalletKit", targets: ["XCTWalletKit"]),
-      // .executable(name: "wallet", targets: ["WalletKitCLI"])
     ],
     dependencies: [
         // 🔢 Arbitrary-precision arithmetic in pure Swift
         .package(url: "https://github.com/attaswift/BigInt.git", from: "5.0.0"),
-        
-        // 💻 APIs for parsing CLI commands and creating CLI tools.
-        // .package(url: "https://github.com/apple/swift-argument-parser", .upToNextMinor(from: "0.0.4")),
         
         // 🔑 Hashing (BCrypt, SHA2, HMAC), encryption (AES), public-key (RSA), and random data generation.
         .package(path: "./Sources/CryptoCore"),
