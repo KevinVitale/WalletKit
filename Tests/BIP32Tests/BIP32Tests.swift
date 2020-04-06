@@ -1,8 +1,4 @@
-import XCTest
-import Foundation
-import CryptoCore
-import BIP32
-import BigInt
+import XCTHelpers
 
 func address(_ data: Data) -> Data {
     var sha = SHA256()
