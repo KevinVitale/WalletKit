@@ -67,6 +67,12 @@ public struct Mnemonic: Equatable {
 }
 
 extension Mnemonic {
+    public init?(seedPhrase phrase: String) {
+        self.init(words: phrase.split(separator: " "))
+    }
+}
+
+extension Mnemonic {
     /**
      * An `EntropyGenerator` based on bit-sizes.
      */
