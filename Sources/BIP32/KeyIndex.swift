@@ -1,7 +1,7 @@
 import Foundation
 
 @propertyWrapper
-public struct KeyIndex: Equatable {
+public struct KeyIndex: Equatable, CustomStringConvertible {
     public enum Error: Swift.Error {
         case invalidIndex(UInt32)
     }
@@ -27,11 +27,9 @@ public struct KeyIndex: Equatable {
         wrappedValue.bytes
     }
     
-    /*
-    var path: String {
+    public var description: String {
         "/\(_index)" + (_hardened ? "'" : "")
     }
-     */
 
     static let zero = KeyIndex(wrappedValue: .zero)
 }
