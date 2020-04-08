@@ -18,7 +18,7 @@ public struct Mnemonic: Equatable {
      * - parameter words: An array of words.
      */
     public init<Words: Collection>(words: Words) throws where Words.Element: StringProtocol {
-        guard Strength.wordCounts.contains(words.count) else {
+        guard Int.wordCounts.contains(words.count) else {
             throw SeedDerivatorError.seedPhraseInvalid(words.joined(separator: " "))
         }
         self.phrase = words.joined(separator: " ")
@@ -58,40 +58,5 @@ public struct Mnemonic: Equatable {
 extension Mnemonic {
     public init(seedPhrase phrase: String) throws {
         try self.init(words: phrase.split(separator: " "))
-    }
-}
-
-extension Mnemonic {
-    /**
-     * An `EntropyGenerator` based on bit-sizes.
-     */
-    public enum Strength: Int, EntropyGenerator {
-        case weakest   = 128  // 12 words
-        case weak      = 160  // 15 words
-        case medium    = 192  // 18 words
-        case strong    = 224  // 21 words
-        case strongest = 256  // 24 words
-        
-        /// A set of all `Strength` values.
-        public static var allValues: [Strength] {
-            [
-                .weakest,
-                .weak,
-                .medium,
-                .strong,
-                .strongest,
-            ]
-        }
-        
-        fileprivate static var wordCounts: [Int] {
-            [ 12, 15, 18, 21, 24 ]
-        }
-
-        /**
-         * Generates _entropy_ data.
-         */
-        public func entropy() -> Result<Data, Swift.Error> {
-            Result { try Data.randomBytes(rawValue / 8) }
-        }
     }
 }

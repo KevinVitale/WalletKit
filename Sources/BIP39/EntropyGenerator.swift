@@ -21,6 +21,10 @@ extension Int: EntropyGenerator {
         }
         return Result { try Data.randomBytes(self / 8) }
     }
+    
+    static var wordCounts: [Int] {
+        [ 12, 15, 18, 21, 24 ]
+    }
 }
 
 extension EntropyGenerator where Self: StringProtocol {
