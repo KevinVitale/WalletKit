@@ -19,7 +19,7 @@ public struct KeyIndex: Equatable, CustomStringConvertible {
     private var _index    :UInt32
     private var _hardened :Bool
     
-    var isHardened: Bool {
+    public var isHardened: Bool {
         _hardened
     }
     
