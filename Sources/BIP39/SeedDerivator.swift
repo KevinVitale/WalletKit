@@ -19,6 +19,7 @@ public protocol SeedDerivator {
  */
 public enum SeedDerivatorError: Swift.Error {
     case seedDerivationFailed
+    case seedPhraseInvalid(String)
     case error(Swift.Error)
 }
 

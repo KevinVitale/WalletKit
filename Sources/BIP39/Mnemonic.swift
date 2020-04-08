@@ -17,24 +17,13 @@ public struct Mnemonic: Equatable {
      *
      * - parameter words: An array of words.
      */
-    public init?<Words: Collection>(words: Words) where Words.Element: StringProtocol {
+    public init<Words: Collection>(words: Words) throws where Words.Element: StringProtocol {
         guard Strength.wordCounts.contains(words.count) else {
-            return nil
+            throw SeedDerivatorError.seedPhraseInvalid(words.joined(separator: " "))
         }
         self.phrase = words.joined(separator: " ")
     }
 
-    /**
-     * Create a mnemonic, generating _entropy_ based on `strength`, with phrase_
-     * pulled from the `vocabulary` list.
-     *
-     * - parameter strength
-     * - parameter vocabulary
-     */
-    public init(strength: Strength, in vocabulary: WordList = .english) throws {
-        self = try Mnemonic(entropy: strength, in: vocabulary)
-    }
-    
     /**
      * Create a mnemonic from a pre-computed `entropy`, with phrase_ pulled from
      * the `vocabulary` list.
@@ -43,7 +32,7 @@ public struct Mnemonic: Equatable {
      * - parameter vocabulary
      */
     public init<Entropy: EntropyGenerator>(entropy: Entropy, in vocabulary: WordList = .english) throws {
-        self = Mnemonic(words: try vocabulary.randomWords(withEntropy: entropy))!
+        self = try Mnemonic(words: try vocabulary.randomWords(withEntropy: entropy))
     }
 
     /**
@@ -67,8 +56,8 @@ public struct Mnemonic: Equatable {
 }
 
 extension Mnemonic {
-    public init?(seedPhrase phrase: String) {
-        self.init(words: phrase.split(separator: " "))
+    public init(seedPhrase phrase: String) throws {
+        try self.init(words: phrase.split(separator: " "))
     }
 }
 

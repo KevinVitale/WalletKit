@@ -11,7 +11,16 @@ public protocol EntropyGenerator {
  * Errors relating to `EntropyGenerator`.
  */
 public enum EntropyGeneratorError: Swift.Error {
-    case invalidInput(String)
+    case invalidInput(EntropyGenerator)
+}
+
+extension Int: EntropyGenerator {
+    public func entropy() -> Result<Data, Swift.Error> {
+        guard (self % 2) == 0, case 4...8 = (self / 32) else {
+            return .failure(EntropyGeneratorError.invalidInput(self))
+        }
+        return Result { try Data.randomBytes(self / 8) }
+    }
 }
 
 extension EntropyGenerator where Self: StringProtocol {
