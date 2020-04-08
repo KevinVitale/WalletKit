@@ -24,9 +24,7 @@ final class MnemonicTests: XCTestCase {
         // Do not create a `Mnemonic` like this. **TESTING ONLY**
         //----------------------------------------------------------------------
         let testWords = try WordList.english.randomWords(withEntropy: 128)
-        let mnemonic  = try Mnemonic(words: Array(testWords[0..<10]))
-        
-        XCTAssertNil(mnemonic)
+        XCTAssertThrowsError(try Mnemonic(words: Array(testWords[0..<10])))
     }
     
     func testMnemonicWithStrength() throws {
