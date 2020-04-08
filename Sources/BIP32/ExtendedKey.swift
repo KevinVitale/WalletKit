@@ -25,6 +25,7 @@ public struct ExtendedKey {
         }
         
         self = try .init(
+            pathURL     :URL(string: "m")!,
             depth       :0,
             version     :network,
             fingerprint :0,
@@ -45,7 +46,7 @@ public struct ExtendedKey {
      * - parameter key          :
      * - parameter keyDerivator :
      */
-    init(depth: UInt8, version network: Network, fingerprint: UInt32, index: KeyIndex, chainCode: Data, key: Data, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws {
+    init(pathURL: URL, depth: UInt8, version network: Network, fingerprint: UInt32, index: KeyIndex, chainCode: Data, key: Data, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws {
         let serializedKey: Data = try {
             var data = Data(capacity: 78)
             
@@ -59,7 +60,7 @@ public struct ExtendedKey {
             return data
         }()
         
-        self = try .init(serializedKey: serializedKey)
+        self = try .init(serializedKey: serializedKey, atPath: pathURL)
     }
     
     /**
@@ -70,7 +71,7 @@ public struct ExtendedKey {
      *
      * - parameter data: The public and private key, in serialized form.
      */
-    init(serializedKey: Data) throws {
+    init(serializedKey: Data, atPath pathURL: URL) throws {
         guard serializedKey.count == 78 else {
             throw Error.invalidSerializedKey(serializedKey)
         }
@@ -86,6 +87,7 @@ public struct ExtendedKey {
             let checksum = sha256(from: sha256(from: serializedKey))[..<4]
             return Base58.encode(serializedKey + checksum)
         }()
+        self.pathURL = pathURL
     }
     
     /// Encoded _serialized data_ in Base58, by first adding 32 checksum bits
@@ -94,6 +96,8 @@ public struct ExtendedKey {
     
     /// Extended keys wrap around their serialized data form.
     public private(set) var wrappedValue: Data
+    
+    public private(set) var pathURL: URL
 }
 
 /**
@@ -147,12 +151,13 @@ extension ExtendedKey {
         }
         
         return try ExtendedKey(
+            pathURL     : pathURL,
             depth       : depth.wrappedValue,
             version     : network.switched(to: .public),
             fingerprint : fingerprint,
             index       : index,
             chainCode   : chainCode,
-            key         : key.dropFirst()
+            key         : key.dropFirst() // drop the '0x00'; compute 'pubKey' during 'init'
         )
     }
 }
@@ -351,6 +356,7 @@ extension ExtendedKey {
 
                 // Instantiate the `childKey`.
                 let childKey = try ExtendedKey(
+                    pathURL     :parent.pathURL.appendingPathComponent(childIndex.description),
                     depth       :nextDepth,
                     version     :parent.network.switched(to: sector),
                     fingerprint :fingerprint,
