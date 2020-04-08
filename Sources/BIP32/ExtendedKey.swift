@@ -45,7 +45,7 @@ public struct ExtendedKey {
      * - parameter key          :
      * - parameter keyDerivator :
      */
-    public init(depth: UInt8, version network: Network, fingerprint: UInt32, index: KeyIndex, chainCode: Data, key: Data, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws {
+    init(depth: UInt8, version network: Network, fingerprint: UInt32, index: KeyIndex, chainCode: Data, key: Data, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws {
         let serializedKey: Data = try {
             var data = Data(capacity: 78)
             
