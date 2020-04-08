@@ -54,7 +54,7 @@ public struct ExtendedKey {
             data += fingerprint.bytes
             data += index.bytes
             data += chainCode
-            data += network.sector == .private ? [0x00] + key : try ExtendedKey.computePublicKey(forData: key, using: keyDerivator)
+            data += network.sector == .private ? [0x00] + key : try ExtendedKey.computePublicKey(forData: key, compressed: true, using: keyDerivator)
 
             return data
         }()
@@ -133,8 +133,8 @@ extension ExtendedKey {
      *
      * - returns: The public key data.
      */
-    fileprivate static func computePublicKey(forData data: Data, using keyDerivator: KeyDerivator.Type) throws -> Data {
-        try keyDerivator.secp256k_1(data: data, compressed: true).get()
+    fileprivate static func computePublicKey(forData data: Data, compressed: Bool, using keyDerivator: KeyDerivator.Type) throws -> Data {
+        try keyDerivator.secp256k_1(data: data, compressed: compressed).get()
     }
 
     /**
