@@ -5,7 +5,7 @@ final class MnemonicTests: XCTestCase {
         let tests = try XCTFixture<BIP39TestVectors>.loadTests()
 
         for (idx, vector) in tests.enumerated() {
-            let mnemonic = try Mnemonic(entropy: vector.inputEntropy)
+            let mnemonic = try Mnemonic(entropy: vector)
             let seedDflt = try mnemonic.seed(passphrase: "TREZOR").map(String.init(hexEncoding:)).get()
             let seedBSSL = try mnemonic.seed(passphrase: "TREZOR", derivator: BoringSSLSeedDerivator.self).map(String.init(hexEncoding:)).get()
 

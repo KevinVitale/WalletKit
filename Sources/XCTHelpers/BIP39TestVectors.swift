@@ -1,4 +1,5 @@
 import Foundation
+import BIP39
 
 public struct BIP39TestVectors: XCTFixtureProvider, Decodable, Collection {
     public static var fileName: String = "BIP39TestVectors.json"
@@ -7,7 +8,7 @@ public struct BIP39TestVectors: XCTFixtureProvider, Decodable, Collection {
         case vocabulary = "english"
     }
     
-    public struct Vector: Codable {
+    public struct Vector: Codable, EntropyGenerator {
         private var _mnemonicPhrase :String = ""
         
         public private(set) var inputEntropy   :String = ""
@@ -27,6 +28,10 @@ public struct BIP39TestVectors: XCTFixtureProvider, Decodable, Collection {
                 default: _ = try container.decode(String.self)
                 }
             } while !container.isAtEnd
+        }
+        
+        public func entropy() -> Result<Data, Error> {
+            inputEntropy.entropy()
         }
     }
     
