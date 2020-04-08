@@ -1,15 +1,5 @@
 import XCTHelpers
 
-func address(_ data: Data) -> Data {
-    var sha = SHA256()
-    sha.update(data: data)
-    let data = Array(sha.finalize())
-
-    var ripemd = RIPEMD160()
-    ripemd.update(data: Data(data))
-    return ripemd.finalize()
-}
-
 final class BIP32Tests: XCTestCase {
     func testRootKeyPublicKey() throws {
         let seedsAndAccounts = [
