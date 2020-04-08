@@ -223,6 +223,10 @@ extension ExtendedKey {
     public func callAsFunction(extended childKey: ChildKeyDerivator, atIndex index: UInt32, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
         try childKey.derived(atIndex: index, fromParentKey: self, using: keyDerivator).get()
     }
+    
+    public func hardened(atIndex index: UInt32, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
+        try callAsFunction(extended: .privateKey(hardened: true), atIndex: index, using: keyDerivator)
+    }
 
     /**
      * An enumuration describing a proposed derivation of an extended (child)
