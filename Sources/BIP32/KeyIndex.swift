@@ -31,5 +31,5 @@ public struct KeyIndex: Equatable, CustomStringConvertible {
         "/\(_index)" + (_hardened ? "'" : "")
     }
 
-    static let zero = KeyIndex(wrappedValue: .zero)
+    public static let zero = KeyIndex(wrappedValue: .zero)
 }
