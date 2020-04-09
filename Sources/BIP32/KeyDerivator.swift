@@ -61,7 +61,6 @@ public enum KeyDerivatorError: Swift.Error {
     case keyDerivationError(Swift.Error)
     case missingImplementation
     case keyDerivationFailed(_ description: String)
-    case keyDerivationParsingPublicKeyFailed(publicKey: Data)
 }
 
 //------------------------------------------------------------------------------
