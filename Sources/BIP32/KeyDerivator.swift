@@ -59,7 +59,7 @@ public extension KeyDerivator {
  */
 public enum KeyDerivatorError: Swift.Error {
     case keyDerivationError(Swift.Error)
-    case keyDerivationMissingImplementation
+    case missingImplementation
     case keyDerivationFailed(_ description: String)
     case keyDerivationParsingPublicKeyFailed(publicKey: Data)
 }
@@ -139,16 +139,16 @@ public struct SwiftCryptoKeyDerivator: KeyDerivator {
 public struct DummyKeyDerivator: KeyDerivator {
     @inlinable @inline(__always)
     public static func hmac(key: Data = .BitcoinKeyData, data: Data) -> Result<Data, KeyDerivatorError> {
-        .failure(.keyDerivationMissingImplementation)
+        .failure(.missingImplementation)
     }
     
     public static func secp256k_1(data: Data, compressed: Bool) -> Result<Data, KeyDerivatorError> {
-        .failure(.keyDerivationMissingImplementation)
+        .failure(.missingImplementation)
     }
     
     @inlinable @inline(__always)
     public static func hash160(data: Data) -> Result<Data, KeyDerivatorError> {
-        .failure(.keyDerivationMissingImplementation)
+        .failure(.missingImplementation)
     }
 }
 
