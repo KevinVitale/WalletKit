@@ -12,6 +12,9 @@ public protocol KeyDerivator {
     static func hash160(data: Data) -> Result<Data, KeyDerivatorError>
 }
 
+/**
+ * Default implementations of protocol functions.
+ */
 extension KeyDerivator {
     @inlinable @inline(__always)
     public static func hmac<H>(_ hashFunction: H.Type, key: Data, data: Data) -> Result<Data, KeyDerivatorError> where H : HashFunction {
