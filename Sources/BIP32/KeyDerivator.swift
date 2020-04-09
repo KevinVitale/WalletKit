@@ -49,26 +49,8 @@ extension KeyDerivator {
  * - BIP-0032 : https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#master-key-generation
  */
 public extension KeyDerivator {
-    static func masterKeyData(fromHexString hexString: String) -> Result<(key: Data, chainCode: Data), KeyDerivatorError> {
-        Result(catching: { try Data(hexString: hexString) }).masterKeyData(using: Self.self)
-    }
-    
     static func masterKeyData(fromSeed data: Data) -> Result<(key: Data, chainCode: Data), KeyDerivatorError> {
         hmac(SHA512.self, key: .BitcoinKeyData, data: data).map { ($0[..<32], $0[32...]) }
-    }
-}
-
-public extension KeyDerivator {
-    static func rootKey(fromHexString hexString: String, version network: Network) -> Result<ExtendedKey, KeyDerivatorError> {
-        masterKeyData(fromHexString: hexString).flatMap { rootKey(fromMasterKey: $0, version: network) }
-    }
-    
-    static func rootKey(fromSeed data: Data, version network: Network) -> Result<ExtendedKey, KeyDerivatorError> {
-        masterKeyData(fromSeed: data).flatMap { rootKey(fromMasterKey: $0, version: network) }
-    }
-
-    static func rootKey(fromMasterKey masterKey: (key: Data, chainCode: Data), version network: Network) -> Result<ExtendedKey, KeyDerivatorError> {
-        Result(catching: { try ExtendedKey(masterKey: masterKey, version: network) }).mapError { .keyDerivationError($0) }
     }
 }
 
@@ -91,14 +73,6 @@ extension Data {
 }
 
 //------------------------------------------------------------------------------
-extension Result where Success == Data {
-    fileprivate func masterKeyData(using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) -> Result<(key: Data, chainCode: Data), KeyDerivatorError> {
-        mapError { .keyDerivationError($0) }
-        .flatMap { keyDerivator.hmac(SHA512.self, key: .BitcoinKeyData, data: $0) }
-            .map { ($0[..<32], $0[32...]) }
-    }
-}
-
 /**
  * 65-bytes if `compressed`; 33-bytes, otherwise.
  */

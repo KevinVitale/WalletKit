@@ -14,15 +14,16 @@ final class BIP32Tests: XCTestCase {
         ]
         
         for (_, (seed, account)) in seedsAndAccounts.enumerated() {
-            let rootKey = try DefaultKeyDerivator.rootKey(fromHexString: seed, version: .mainnet(.private)).get().publicKey()
-            XCTAssertTrue(rootKey == account)
-            print("Root Key:", rootKey)
-            print("Network:", rootKey.network)
-            print("Depth:", rootKey.depth)
-            print("Fingerprint:", rootKey.fingerprint.bytes)
-            print("Index:", rootKey.index)
-            print("Chain Code:", rootKey.chainCode.hexString, "\(rootKey.chainCode)")
+            let publicKey = try ExtendedKey(seedHexString: seed, version: .mainnet(.public))
+            XCTAssertTrue(publicKey == account)
+            print("Root Key:", publicKey)
+            print("Network:", publicKey.network)
+            print("Depth:", publicKey.depth)
+            print("Fingerprint:", publicKey.fingerprint.bytes)
+            print("Index:", publicKey.index)
+            print("Chain Code:", publicKey.chainCode.hexString, "\(publicKey.chainCode)")
             print("")
+            
         }
     }
 
@@ -39,7 +40,7 @@ final class BIP32Tests: XCTestCase {
         ]
         
         for (_, (seed, account)) in seedsAndAccounts.enumerated() {
-            let rootKey = try DefaultKeyDerivator.rootKey(fromHexString: seed, version: .mainnet(.private)).get()
+            let rootKey = try ExtendedKey(seedHexString: seed, version: .mainnet(.private))
             XCTAssertTrue(rootKey == account)
             print("Root Key:", rootKey)
             print("Public Key:", try rootKey.publicKey())
@@ -53,8 +54,11 @@ final class BIP32Tests: XCTestCase {
     }
 
     func testChildKeyDerivatorFromPrivateToPrivateNotHardenedSucceeds() throws {
-        let rootKey  = try DefaultKeyDerivator.rootKey(fromHexString: "fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542", version: .mainnet(.private)).get()
-        let childKey = try rootKey(extended: .privateKey(hardened: false), atIndex: 0)
+        let rootKey  = try ExtendedKey(
+            seedHexString: "fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542",
+            version      : .mainnet(.private)
+        )
+        let childKey = try rootKey.privateKey(atIndex: .normal(0))
         let childPublicKey = try childKey.publicKey()
 
         XCTAssertTrue(childKey == "xprv9vHkqa6EV4sPZHYqZznhT2NPtPCjKuDKGY38FBWLvgaDx45zo9WQRUT3dKYnjwih2yJD9mkrocEZXo1ex8G81dwSM1fwqWpWkeS3v86pgKt")
@@ -63,9 +67,27 @@ final class BIP32Tests: XCTestCase {
         print(childKey, "\n\(childPublicKey)")
     }
     
+    func testChildKeyDerivatorFromPrivateTestnetToPrivateNotHardenedSucceeds() throws {
+        let rootKey  = try ExtendedKey(
+            seedHexString: "c55257c360c07c72029aebc1b53c05ed0362ada38ead3e3e9efa3708e53495531f09a6987599d18264c1e1c92f2cf141630c7a3c4ab7c81b2f001698e7463b04",
+            version      : .testnet(.private)
+        )
+        let childKey = try rootKey.privateKey(atIndex: .normal(0))
+        let childPublicKey = try childKey.publicKey()
+
+        XCTAssertTrue(rootKey == "tprv8ZgxMBicQKsPeWHBt7a68nPnvgTnuDhUgDWC8wZCgA8GahrQ3f3uWpq7wE7Uc1dLBnCe1hhCZ886K6ND37memRDWqsA9HgSKDXtwh2Qxo6J")
+        XCTAssertTrue(childKey == "tprv8cuCuYDY1CfruLwNg8JnjBvbrxgZnefmAF5bKScg3rAKSY7upRNYxTd86hhCwatUey2NHkYq4YFWkDiKpdcEwok7UV9kvoFXWAhH3Cx1KDa")
+        XCTAssertTrue(childPublicKey == "tpubD9bF3xFn9aMXnoyAZmyP8baiRzCVwyrfjYgNbxeyU7xiH2NgSpC98xEzGr97dsXGfd1jsWVmrFL3hUat8hFwmq6bpFKwZyUVCcgw6eBEwVB")
+
+        print(childKey, "\n\(childPublicKey)")
+    }
+    
     func testChildKeyDerivatorFromPrivateToPrivateHardenedSucceeds() throws {
-        let rootKey  = try DefaultKeyDerivator.rootKey(fromHexString: "000102030405060708090a0b0c0d0e0f", version: .mainnet(.private)).get()
-        let childKey = try rootKey(extended: .privateKey(hardened: true), atIndex: 0)
+        let rootKey  = try ExtendedKey(
+            seedHexString: "000102030405060708090a0b0c0d0e0f",
+            version      : .mainnet(.private)
+        )
+        let childKey = try rootKey.privateKey(atIndex: .hardened(0))
         let childPublicKey = try childKey.publicKey()
         
         XCTAssertTrue(childKey == "xprv9uHRZZhk6KAJC1avXpDAp4MDc3sQKNxDiPvvkX8Br5ngLNv1TxvUxt4cV1rGL5hj6KCesnDYUhd7oWgT11eZG7XnxHrnYeSvkzY7d2bhkJ7")
@@ -75,8 +97,11 @@ final class BIP32Tests: XCTestCase {
     }
     
     func testChildKeyDerivatorFromPrivateToPrivateWithLeadingZeroesHardenedSucceeds() throws {
-        let rootKey  = try DefaultKeyDerivator.rootKey(fromHexString: "4b381541583be4423346c643850da4b320e46a87ae3d2a4e6da11eba819cd4acba45d239319ac14f863b8d5ab5a0d0c64d2e8a1e7d1457df2e5a3c51c73235be", version: .mainnet(.private)).get()
-        let childKey = try rootKey(extended: .privateKey(hardened: true), atIndex: 0)
+        let rootKey  = try ExtendedKey(
+            seedHexString: "4b381541583be4423346c643850da4b320e46a87ae3d2a4e6da11eba819cd4acba45d239319ac14f863b8d5ab5a0d0c64d2e8a1e7d1457df2e5a3c51c73235be",
+            version      : .mainnet(.private)
+        )
+        let childKey = try rootKey.privateKey(atIndex: .hardened(0))
         let childPublicKey = try childKey.publicKey()
         
         XCTAssertTrue(childKey == "xprv9uPDJpEQgRQfDcW7BkF7eTya6RPxXeJCqCJGHuCJ4GiRVLzkTXBAJMu2qaMWPrS7AANYqdq6vcBcBUdJCVVFceUvJFjaPdGZ2y9WACViL4L")
@@ -86,32 +111,41 @@ final class BIP32Tests: XCTestCase {
     }
 
     func testChildKeyDerivatorFromPublicToPublicNotHardenedSucceeds() throws {
-        let rootKey  = try DefaultKeyDerivator.rootKey(fromHexString: "fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542", version: .mainnet(.private)).get()
-        let childKey = try rootKey(extended: .privateKey(hardened: true), atIndex: 0)(extended: .privateKey(hardened: true), atIndex: 0).publicKey()
+        let rootKey  = try ExtendedKey(
+            seedHexString: "fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542",
+            version      : .mainnet(.public))
         
-        XCTAssertTrue(childKey == "xpub6AVDm6Pv4XZGTEPS99BNBq2CVhFgWiRxdDVdpRgzDC5SP9DM6mfVhGw8wDUDM4PTYP44Ufp6H7UDGqU9Sp1LaZjGWUbLBMsMh3N7LBRpQKh")
+        XCTAssertTrue(rootKey == "xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJY47LJhkJ8UB7WEGuduB")
         
-        print(childKey)
+        print(rootKey, rootKey.pathURL)
+        
+        let pubKeyAt0 = try rootKey.publicKey(atIndex: 0)
+        print(pubKeyAt0, pubKeyAt0.pathURL)
+        print(pubKeyAt0.key.hexString)
     }
     
     func testChildKeyDerivatorFromPrivateToPrivatePublicHardenedSucceeds() throws {
-        let rootKey  = try DefaultKeyDerivator.rootKey(fromHexString: "fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542", version: .mainnet(.private)).get()
-        let childKey = try rootKey(extended: .privateKey(hardened: false), atIndex: 0)(extended: .privateKey(hardened: true), atIndex: 2147483647)
-        
+        let rootKey  = try ExtendedKey(
+            seedHexString: "fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542",
+            version      : .mainnet(.private)
+        )
+        let childKey = try rootKey
+            .privateKey(atIndex: .normal(0))
+            .privateKey(atIndex: .hardened(2147483647))
+
         XCTAssertTrue(childKey == "xprv9wSp6B7kry3Vj9m1zSnLvN3xH8RdsPP1Mh7fAaR7aRLcQMKTR2vidYEeEg2mUCTAwCd6vnxVrcjfy2kRgVsFawNzmjuHc2YmYRmagcEPdU9")
         
         print(childKey)
     }
     
     func testChildKeyDerivatorFromPublicToPrivateFails() throws {
-        let rootKey = try DefaultKeyDerivator.rootKey(fromHexString: "000102030405060708090a0b0c0d0e0f", version: .mainnet(.private)).get()
-        XCTAssertThrowsError(try rootKey(extended: .publicKey, atIndex: 0)(extended: .privateKey(hardened: false), atIndex: 0))
+        let rootKey = try ExtendedKey(
+            seedHexString: "000102030405060708090a0b0c0d0e0f",
+            version      : .mainnet(.public)
+        )
+        XCTAssertThrowsError(try rootKey.privateKey(atIndex: .normal(0)))
     }
-    
-    func testRootKeyInstantiatedAsPublicKeyFails() throws {
-        XCTAssertThrowsError(try DefaultKeyDerivator.rootKey(fromHexString: "000102030405060708090a0b0c0d0e0f", version: .mainnet(.public)).get())
-    }
-    
+
     func testExtendedKeyAtMaxDepthFails() throws {
         XCTAssertThrowsError(try KeyDepth(wrappedValue: .max).nextDepth())
     }
