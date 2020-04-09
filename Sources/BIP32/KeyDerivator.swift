@@ -41,6 +41,17 @@ extension KeyDerivator {
             }())
         )
     }
+    
+    @inlinable @inline(__always)
+    public static func doubleSHA256(data: Data) -> Result<Data, KeyDerivatorError> {
+        let sha256Hash = { (data: Data) -> Data in
+            var hash = SHA256()
+            hash.update(data: data)
+            return Data(hash.finalize())
+        }
+        
+        return .success( sha256Hash(sha256Hash(data)) )
+    }
 }
 
 /**
