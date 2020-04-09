@@ -132,31 +132,9 @@ public struct SwiftCryptoKeyDerivator: KeyDerivator {
 #endif
 
 //------------------------------------------------------------------------------
-/**
- * Key derivator stub with a missing implementations. Guaranteed to fail.
- */
-public struct DummyKeyDerivator: KeyDerivator {
-    @inlinable @inline(__always)
-    public static func hmac(key: Data = .BitcoinKeyData, data: Data) -> Result<Data, KeyDerivatorError> {
-        .failure(.missingImplementation)
-    }
-    
-    public static func secp256k_1(data: Data, compressed: Bool) -> Result<Data, KeyDerivatorError> {
-        .failure(.missingImplementation)
-    }
-    
-    @inlinable @inline(__always)
-    public static func hash160(data: Data) -> Result<Data, KeyDerivatorError> {
-        .failure(.missingImplementation)
-    }
-}
-
-//------------------------------------------------------------------------------
 #if     canImport(CryptoKit)
 public typealias DefaultKeyDerivator = CryptoKitKeyDerivator
 #elseif canImport(Crypto)
 public typealias DefaultKeyDerivator = SwiftCryptoKeyDerivator
-#else
-public typealias DefaultKeyDerivator = DummyKeyDerivator
 #endif
 
