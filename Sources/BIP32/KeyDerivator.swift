@@ -62,7 +62,7 @@ extension KeyDerivator {
  *
  * - BIP-0032 : https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#master-key-generation
  */
-public extension KeyDerivator {
+extension KeyDerivator {
     static func masterKeyData(fromSeed data: Data) -> Result<(key: Data, chainCode: Data), KeyDerivatorError> {
         hmac(SHA512.self, key: .BitcoinKeyData, data: data).map { ($0[..<32], $0[32...]) }
     }
