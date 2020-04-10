@@ -19,21 +19,27 @@ let package = Package(
         .package(path: "./Sources/CryptoCore"),
     ],
     targets: [
-        // 📚 Mnemonic code for generating deterministic keys
+        // 📚 -- Mnemonic code for generating deterministic keys
         .target(name: "BIP39", dependencies: [
             "CryptoCore"
         ]),
         
-        // 📚 Mnemonic code for generating deterministic keys
+        // 💰 -- Hierarchical Deterministic Wallets
         .target(name: "BIP32", dependencies: [
             "CryptoCore",
             "BigInt",
+        ]),
+
+        // 🏦 -- Multi-Account Hierarchy for Deterministic Wallets
+        .target(name: "BIP44", dependencies: [
+            "BIP32"
         ]),
         
         // Testing
         .target(name: "XCTHelpers", dependencies:[
             .target(name: "BIP39"),
             .target(name: "BIP32"),
+            .target(name: "BIP44"),
         ]),
 
         // Test -- BIP39
@@ -43,6 +49,11 @@ let package = Package(
         
         // Test -- BIP32
         .testTarget(name: "BIP32Tests", dependencies: [
+            .target(name: "XCTHelpers")
+        ]),
+
+        // Test -- BIP44
+        .testTarget(name: "BIP44Tests", dependencies: [
             .target(name: "XCTHelpers")
         ]),
 
