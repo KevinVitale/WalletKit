@@ -97,26 +97,43 @@ func _GeneratePublicKey(data: Data, compressed: Bool) -> Result<Data, KeyDerivat
     
     defer { secp256k1_context_destroy(ctx) }
     
-    var privateKey: [UInt8] = Array(data)
-    guard secp256k1_ec_seckey_verify(ctx, &privateKey) == 1 else {
-        return .failure(.keyDerivationFailed("Failed to generate a public key: private key is not valid."))
+    do {
+        var privateKey: [UInt8] = Array(data)
+        let publicKey  = try _CreatePublicKey(ctx: ctx, &privateKey)
+        let pubKeyData = try _SerializePublicKey(ctx: ctx, publicKey)
+        return .success(pubKeyData)
+    }
+    catch let error as KeyDerivatorError {
+        return .failure(error)
+    }
+    catch {
+        return .failure(.keyDerivationError(error))
+    }
+}
+
+func _CreatePublicKey(ctx: OpaquePointer, _ data: inout [UInt8]) throws -> UnsafeMutablePointer<secp256k1_pubkey> {
+    guard secp256k1_ec_seckey_verify(ctx, data) == 1 else {
+        throw KeyDerivatorError.keyDerivationFailed("Failed to generate a public key: invalid secret key.")
     }
     
     let publicKey = UnsafeMutablePointer<secp256k1_pubkey>.allocate(capacity: 1)
-    guard secp256k1_ec_pubkey_create(ctx, publicKey, privateKey) == 1 else {
-        return .failure(.keyDerivationFailed("Failed to generate a public key: public key could not be created."))
+    guard secp256k1_ec_pubkey_create(ctx, publicKey, data) == 1 else {
+        throw KeyDerivatorError.keyDerivationFailed("Failed to generate a public key: invalid context.")
     }
+    
+    return publicKey
+}
 
+func _SerializePublicKey(ctx: OpaquePointer, _ publicKey: UnsafeMutablePointer<secp256k1_pubkey>, compressed: Bool = true) throws -> Data {
     let compress       = compressed ? UInt32(SECP256K1_EC_COMPRESSED) : UInt32(SECP256K1_EC_UNCOMPRESSED)
     let outputByteSize = compressed ? 33 : 65
     var publicKeyBytes = [UInt8](repeating: 0, count: outputByteSize)
     var publicKeyLen   = publicKeyBytes.count
-
-    guard secp256k1_ec_pubkey_serialize(ctx, &publicKeyBytes, &publicKeyLen, publicKey, compress) == 1 else {
-        return .failure(.keyDerivationFailed("Failed to generate a public key: public key could not be serialized."))
-    }
     
-    return .success(Data(publicKeyBytes))
+    guard secp256k1_ec_pubkey_serialize(ctx, &publicKeyBytes, &publicKeyLen, publicKey, compress) == 1 else {
+        throw KeyDerivatorError.keyDerivationFailed("Failed to generate a public key: public key could not be serialized.")
+    }
+    return Data(publicKeyBytes)
 }
 
 //------------------------------------------------------------------------------

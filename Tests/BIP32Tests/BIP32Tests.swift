@@ -58,13 +58,17 @@ final class BIP32Tests: XCTestCase {
             seedHexString: "fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542",
             version      : .mainnet(.private)
         )
-        let childKey = try rootKey.privateKey(atIndex: .normal(0))
-        let childPublicKey = try childKey.publicKey()
+        var childKey = try rootKey.privateKey(atIndex: .normal(0))
+        var childPublicKey = try childKey.publicKey()
 
         XCTAssertTrue(childKey == "xprv9vHkqa6EV4sPZHYqZznhT2NPtPCjKuDKGY38FBWLvgaDx45zo9WQRUT3dKYnjwih2yJD9mkrocEZXo1ex8G81dwSM1fwqWpWkeS3v86pgKt")
         XCTAssertTrue(childPublicKey == "xpub69H7F5d8KSRgmmdJg2KhpAK8SR3DjMwAdkxj3ZuxV27CprR9LgpeyGmXUbC6wb7ERfvrnKZjXoUmmDznezpbZb7ap6r1D3tgFxHmwMkQTPH")
-
-        print(childKey, "\n\(childPublicKey)")
+        
+        childKey = try childKey.privateKey(atIndex: .normal(0))
+        childPublicKey = try childKey.publicKey()
+        
+        XCTAssertTrue(childKey == "xprv9wSp6B7UBdyZR3rpPXH95XSurvExuGcic5wVTcZg1a2kYFSX1scgji5ofnjQ6HRZFkZQ1fyKxL8JpjvLpMhw78UdTeGRiKwmTbX3WNcnaV8")
+        XCTAssertTrue(childPublicKey == "xpub6ASAVgeN21XrdXwHVYp9SfPeQx5TJjLZyJs6FzyHZuZjR3mfZQvwHWQHX3EHtVDzUUTuke7H6Z9sbmxzoh4bkFnrxG6JQGEuQ1WfX1Bfh3Z")
     }
     
     func testChildKeyDerivatorFromPrivateTestnetToPrivateNotHardenedSucceeds() throws {
@@ -109,19 +113,12 @@ final class BIP32Tests: XCTestCase {
         
         print(childKey, "\n\(childPublicKey)")
     }
-
-    func testChildKeyDerivatorFromPublicToPublicNotHardenedSucceeds() throws {
-        let rootKey  = try ExtendedKey(
+    
+    func testPublicToPublicKeyDerivationFails() throws {
+        let publicKey = try ExtendedKey(
             seedHexString: "fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542",
             version      : .mainnet(.public))
-        
-        XCTAssertTrue(rootKey == "xpub661MyMwAqRbcFW31YEwpkMuc5THy2PSt5bDMsktWQcFF8syAmRUapSCGu8ED9W6oDMSgv6Zz8idoc4a6mr8BDzTJY47LJhkJ8UB7WEGuduB")
-        
-        print(rootKey, rootKey.pathURL)
-        
-        let pubKeyAt0 = try rootKey.publicKey(atIndex: 0)
-        print(pubKeyAt0, pubKeyAt0.pathURL)
-        print(pubKeyAt0.key.hexString)
+        XCTAssertThrowsError(try publicKey.publicKey(atIndex: .normal(0)))
     }
     
     func testChildKeyDerivatorFromPrivateToPrivatePublicHardenedSucceeds() throws {

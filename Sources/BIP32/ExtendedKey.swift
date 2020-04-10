@@ -26,8 +26,7 @@ public struct ExtendedKey {
                         fingerprint :0,
                         index       :.normal(0),
                         chainCode   :masterKey.chainCode,
-                        key         :masterKey.key,
-                        using       :keyDerivator
+                        key         : network.sector == .private ? [0x00] + masterKey.key : try keyDerivator.secp256k_1(data: masterKey.key, compressed: true).get()
                     )
                 }
                 .mapError({ .keyDerivationError($0) })
@@ -69,8 +68,8 @@ extension ExtendedKey: CustomStringConvertible {
      * - parameter key          :
      * - parameter keyDerivator :
      */
-    private init(pathURL: URL, depth: UInt8, version network: Network, fingerprint: UInt32, index: KeyIndex, chainCode: Data, key: Data, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws {
-        let serializedKey: Data = try {
+    private init(pathURL: URL, depth: UInt8, version network: Network, fingerprint: UInt32, index: KeyIndex, chainCode: Data, key: Data) throws {
+        let serializedKey: Data = {
             var data = Data(capacity: 78)
             
             data += network.bytes
@@ -78,7 +77,7 @@ extension ExtendedKey: CustomStringConvertible {
             data += fingerprint.bytes
             data += index.bytes
             data += chainCode
-            data += network.sector == .private ? [0x00] + key : try keyDerivator.secp256k_1(data: key, compressed: true).get()
+            data += key
             
             return data
             }()
@@ -120,11 +119,121 @@ extension ExtendedKey: CustomStringConvertible {
 }
 
 extension ExtendedKey {
+    public enum Derivation {
+        case privateKey(at: KeyIndex)
+        case publicKey(at: KeyIndex)
+        
+        var index: KeyIndex {
+            switch self {
+            case .privateKey(let index): return index
+            case .publicKey(let index): return index
+            }
+        }
+        
+        var sector: Sector {
+            switch self {
+            case .publicKey  :return .public
+            case .privateKey :return .private
+            }
+        }
+        
+        fileprivate func perform(using keyDerivator: KeyDerivator.Type) -> (_: ExtendedKey) throws -> (key: Data, chainCode: Data) {
+            let hmac512 = { (chainCode: Data, data: Data) -> Result<(Data,Data), KeyDerivatorError> in
+                keyDerivator
+                    .hmac(SHA512.self, key: chainCode, data: data)
+                    .map({ ($0[..<32],$0[32...]) })
+            }
+            
+            switch self {
+            case .privateKey(let index): /* To: Private-Key */
+                return { parent in
+                    func computeChildKey(key: Data, chainCode: Data) -> (key: Data, chainCode: Data) {
+                        // TODO: Sanity-check 'BigUInt'
+                        var childKeyNum = BigUInt(parent.key)
+                        childKeyNum    += BigUInt(key)
+                        childKeyNum    %= .CurveOrder
+                        
+                        let childKey = Data([0x00]) + childKeyNum.serialize()
+                        
+                        return (key: childKey, chainCode: chainCode)
+                    }
+                    
+                    switch parent.network.sector {
+                    /// 'private' -> 'private'
+                    /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#private-parent-key--private-child-key
+                    case .private where index.isHardened:
+                        // 'parent.key' includes 0x00
+                        let (key, chainCode) = try hmac512(parent.chainCode, parent.key + index.bytes).get()
+                        return computeChildKey(key: key, chainCode: chainCode)
+                        
+                    case .private where !index.isHardened:
+                        // 'parent.key' drops 0x00
+                        let pKey = try keyDerivator.secp256k_1(data: parent.key.dropFirst(), compressed: true).get()
+                        let (key, chainCode) = try hmac512(parent.chainCode, pKey + index.bytes).get()
+                        return computeChildKey(key: key, chainCode: chainCode)
+
+                    /* ------------------------------------------------------ */
+                    /// 'public' -> 'private'
+                    /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#public-parent-key--private-child-key
+                    default:
+                        throw Error.invalidDerivation(to: self, from: parent)
+                    }
+            }
+            case .publicKey(let index): /* To: Public-Key */
+                return { parent in
+                    switch parent.network.sector {
+                    /// 'private' -> 'public'
+                    /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#private-parent-key--public-child-key
+                    case .private:
+                        let result   = try Derivation.privateKey(at: index).perform(using: keyDerivator)(parent)
+                        let childKey = try keyDerivator.secp256k_1(data: result.key.dropFirst(), compressed: true).get()
+                        
+                        return (key: childKey, chainCode: result.chainCode)
+                        
+                    /// 'public' -> 'public:non-hardened'
+                    /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#public-parent-key--public-child-key
+                    case .public where !index.isHardened:
+                        throw Error.tooStupidToFigureOutPublicToPublicDerivation
+
+                    /* ------------------------------------------------------ */
+                    /// 'public' -> 'public:hardened'
+                    /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#public-parent-key--public-child-key
+                    default:
+                        throw Error.invalidDerivation(to: self, from: parent)
+                    }
+                }
+            }
+        }
+    }
+    
+    func derived(_ derivation: Derivation, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
+        let (key, chainCode) = try derivation.perform(using: keyDerivator)(self)
+        
+        // Attempt to generate the next `depth`.
+        let nextDepth = try depth.nextDepth().wrappedValue
+
+        // Generate the child's `fingerprint` from the `parent`.
+        let fingerprint: UInt32 = UInt32(data: try keyDerivator.hash160(data: try publicKey().key).get()[...3])!
+        
+        // Instantiate the `childKey`.
+        return try ExtendedKey(
+            pathURL     :pathURL.appendingPathComponent(derivation.index.description),
+            depth       :nextDepth,
+            version     :network.switched(to: derivation.sector),
+            fingerprint :fingerprint,
+            index       :derivation.index,
+            chainCode   :chainCode,
+            key         :key
+        )
+    }
+}
+
+extension ExtendedKey {
     /**
      * The key converted to public key. If this key is already public, `self` is
      * returned.
      */
-    public func publicKey() throws -> ExtendedKey {
+    public func publicKey(using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
         guard case .private = network.sector else {
             return self
         }
@@ -136,16 +245,16 @@ extension ExtendedKey {
             fingerprint : fingerprint,
             index       : index,
             chainCode   : chainCode,
-            key         : key.dropFirst() // drop the '0x00'; compute 'pubKey' during 'init'
+            key         : try keyDerivator.secp256k_1(data: key.dropFirst(), compressed: true).get()
         )
     }
     
-    public func publicKey(atIndex index: UInt32, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
-        try extended(.publicKey, atIndex: index, using: keyDerivator)
+    public func privateKey(atIndex index: KeyIndex, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
+        try derived(.privateKey(at: index))
     }
     
-    public func privateKey(atIndex index: KeyIndex, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
-        try extended(.privateKey(hardened: index.isHardened), atIndex: index.rawValue, using: keyDerivator)
+    public func publicKey(atIndex index: KeyIndex, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
+        try derived(.publicKey(at: index))
     }
 }
 
@@ -204,247 +313,29 @@ extension ExtendedKey: Equatable {
     }
 }
 
-extension ExtendedKey {
-    /**
-     * Creates an extended (child) key from this parent key.
-     *
-     * - parameter childKey     : The type of derivation used to extend the parent.
-     * - parameter index        : The index the the derived key will use.
-     * - parameter keyDerivator : The type which implements certain key derivation algorithms.
-     */
-    private func extended(_ childKey: ChildKeyDerivator, atIndex index: UInt32, using keyDerivator: KeyDerivator.Type) throws -> ExtendedKey {
-        try childKey.derived(atIndex: index, fromParentKey: self, using: keyDerivator).get()
-    }
-
-    /**
-     * An enumuration describing a proposed derivation of an extended (child)
-     * key, and how it should be derived.
-     *
-     * In the case of a `private` child key derivation, the resuling key can be
-     * either _hardened_ or _not hardened_).
-     */
-    public enum ChildKeyDerivator {
-        case privateKey(hardened: Bool)
-        case publicKey
-        
-        /// Indicates that the extended (child) key being derived _is hardened_.
-        ///
-        /// There are two posible types of **BIP32** derivation, hardened or non-hardened.
-        /// In standard **BIP32** path notation, hardened derivation at a particular
-        /// level is indicated by an apostrophe.
-        ///
-        /// https://wiki.trezor.io/Hardened_and_non-hardened_derivation
-        private var isHardened: Bool {
-            switch self {
-            case .privateKey(true) :return true
-            default                :return false
-            }
-        }
-        
-        /// Indicates that the extended (child) key being derived is either a
-        /// _public_ key, or a _private_ key.
-        ///
-        /// - note: A _public_ parent key cannot derive a _private_ extended key.
-        private var sector: Sector {
-            switch self {
-            case .privateKey :return .private
-            case .publicKey  :return .public
-            }
-        }
-        
-        /**
-         * Determines is a proposed `ChildKeyDerivator` is valid for the given
-         * `parent` key.
-         *
-         * https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#child-key-derivation-ckd-functions
-         *
-         * - parameter parent: The source key for the extended key this derivation is proposing.
-         * - returns: If the `true`, the child derivation can proceed.
-         */
-        private func canExtend(parentKey parent: ExtendedKey) -> Bool {
-            switch (from: parent.network.sector, to: sector) {
-            case /* #1 */ (.private, .private) :return true
-            case /* #2 */ (.private, .public)  :return true
-            case /* #3 */ (.public,  .public)  :return true
-            case /* #4 */ (.public,  .private) :return false
-            }
-        }
-
-        /**
-         * - parameter index       :
-         * - parameter parent      :
-         * - parameter keyDerivator:
-         *
-         * - returns: A `Result` with the new instantiated extended (child) key.
-         */
-        fileprivate func derived(atIndex index: UInt32, fromParentKey parent: ExtendedKey, using keyDerivator: KeyDerivator.Type) -> Result<ExtendedKey, ExtendedKey.Error> {
-            guard canExtend(parentKey: parent) else {
-                return .failure(.childKeyDerivatorError(.invalidDerivation(to: self, from: parent)))
-            }
-            
-            do {
-                // Attempt to generate the next `depth`.
-                let nextDepth = try parent.depth.nextDepth().wrappedValue
-                
-                // Create the `childIndex`; 'wrappedValue' adjusts depending on 'isHardened'
-                let childIndex: KeyIndex = isHardened ? .hardened(index) : .normal(index)
-                
-                // TODO: 'Public' -> 'public': currently not working...
-                let childKeyData: (key: Data, chainCode: Data) = try {
-                    switch sector {
-                    case .public :
-                        return try self.publicKey(forChildIndex: childIndex, fromParentKey: parent, using: keyDerivator)
-                    case .private:
-                        return try self.privateKey(forChildIndex: childIndex, fromParentKey: parent, using: keyDerivator)
-                    }
-                }()
-
-                // Generate the child's `fingerprint` from the `parent`.
-                let fingerprint: UInt32 = UInt32(data: try keyDerivator.hash160(data: try parent.publicKey().key).get()[...3])!
-
-                // Instantiate the `childKey`.
-                let childKey = try ExtendedKey(
-                    pathURL     :parent.pathURL.appendingPathComponent(childIndex.description),
-                    depth       :nextDepth,
-                    version     :parent.network.switched(to: sector),
-                    fingerprint :fingerprint,
-                    index       :childIndex,
-                    chainCode   :childKeyData.chainCode,
-                    key         :childKeyData.key
-                )
-                
-                // Return
-                return .success(childKey)
-            }
-            catch let error as Error {
-                guard case .invalidIntermediaryKey = error, index < .max else {
-                    return .failure(.childKeyDerivatorError(error))
-                }
-                return derived(atIndex: index + 1, fromParentKey: parent, using: keyDerivator)
-            }
-            catch let error as KeyDerivatorError {
-                return .failure(.childKeyDerivatorError(.keyDerivatorError(error)))
-            }
-            catch let error as ExtendedKey.Error {
-                return .failure(error)
-            }
-            catch {
-                return .failure(.childKeyDerivatorError(.unknown(error)))
-            }
-        }
-        
-        /**
-         * - parameter index       :
-         * - parameter parent      :
-         * - parameter keyDerivator:
-         *
-         * - returns: This function returns the child's `key` and `chainCode`.
-         */
-        private func privateKey(forChildIndex index: KeyIndex, fromParentKey parent: ExtendedKey, using keyDerivator: KeyDerivator.Type) throws -> (key: Data, chainCode: Data) {
-            let chainKeyData = isHardened ? parent.key : try parent.publicKey().key
-            
-            let intermediateKey = try keyDerivator
-                .hmac(SHA512.self, key: parent.chainCode, data: chainKeyData + index.bytes)
-                .mapError { ChildKeyDerivator.Error.keyDerivatorError($0) }
-                .mapError { ExtendedKey.Error.childKeyDerivatorError($0) }
-                .map { (key: $0[..<32], chainCode: $0[32...]) }
-                .get()
-            
-            let parentKeyNum = BigUInt(parent.key)
-            let intermKeyNum = BigUInt(intermediateKey.key)
-            
-            guard intermKeyNum < .CurveOrder, intermKeyNum != 0 else {
-                throw Error.invalidIntermediaryKey(intermKeyNum)
-            }
-            
-            switch parent.network.sector {
-            case .private:
-                let childKey: Data = {
-                    var childKeyNum = parentKeyNum
-                    childKeyNum += intermKeyNum
-                    childKeyNum %= .CurveOrder
-                    return childKeyNum.serialize()
-                }()
-                
-                return (key: childKey, chainCode: intermediateKey.chainCode)
-                
-            case .public:
-                let intermPubKey = try keyDerivator.secp256k_1(data: intermediateKey.key, compressed: true).get()
-                let childKey = BigUInt(intermPubKey) + parentKeyNum
-                
-                return (key: childKey.serialize(), chainCode: intermediateKey.chainCode)
-            }
-        }
-        
-        private func publicKey(forChildIndex index: KeyIndex, fromParentKey parent: ExtendedKey, using keyDerivator: KeyDerivator.Type) throws -> (key: Data, chainCode: Data) {
-            let parentPubKey = try parent.publicKey().key
-            
-            let _ = try keyDerivator
-                .hmac(SHA512.self, key: parent.chainCode, data: parentPubKey + index.bytes)
-                .mapError { ChildKeyDerivator.Error.keyDerivatorError($0) }
-                .mapError { ExtendedKey.Error.childKeyDerivatorError($0) }
-                .map { (left: $0[..<32], right: $0[32...]) }
-                .get()
-            
-            // https://en.bitcoin.it/wiki/Secp256k1
-            // https://github.com/MetacoSA/NBitcoin/blob/master/NBitcoin/PubKey.cs#L601
-            // (G * key.left) + pubKey
-            
-            fatalError("Can't figure this out")
-        }
-    }
-}
-
 /**
  * `ExtendedKey` errors which may occur.
  */
 extension ExtendedKey {
     public enum Error: Swift.Error {
-        /// Convert a `ChildKeyDerivator.Error` to `ExtendedKey.Error`.
-        case childKeyDerivatorError(ChildKeyDerivator.Error)
-        
-        /// Catches failures on extended key created with malformed data.
-        case invalidSerializedKey(Data)
-    }
-}
-
-/**
- *
- */
-extension ExtendedKey.ChildKeyDerivator {
-    public enum Error: Swift.Error {
         /// Thrown when a _child_ derivation from a _parent_ is not feasible.
         /// - note: This error will be thrown if `from` is _public_, and `to` is _private_.
-        case invalidDerivation(to: ExtendedKey.ChildKeyDerivator, from: ExtendedKey)
+        case invalidDerivation(to: ExtendedKey.Derivation, from: ExtendedKey)
+
+        /// Catches failures on extended key created with malformed data.
+        case invalidSerializedKey(Data)
         
-        /// Catches an error caused when a child's extended key (when interpreted
-        /// as a 256-bit number) is found to be outside of the acceptable range.
-        ///
-        /// Both derived public or private keys rely on treating the left
-        /// 32-byte sequence calculated above (Il) as a 256-bit integer that must be
-        /// within the valid range for a secp256k1 private key.  There is a small
-        /// chance (< 1 in 2^127) this condition will not hold, and in that case,
-        /// a child extended key can't be created for this index and the caller
-        /// should simply increment to the next index.
-        ///
-        /// - note: This error is caught internally.
-        case invalidIntermediaryKey(BigUInt)
-        
-        /// Catches and converts errors thrown from `KeyDerivator` routines.
-        case keyDerivatorError(KeyDerivatorError)
-        
-        /// Catches an out-of-bounds error when determing the next `depth` value.
-        case depthError(KeyDepth.Error)
+        case tooStupidToFigureOutPublicToPublicDerivation
         
         /// Catches all over errors. Good luck! ¯\_(ツ)_/¯
         case unknown(Swift.Error)
     }
-    
 }
 
-fileprivate extension BigUInt {
+extension BigUInt {
     /// Modulo constant (referred to a `n` in **BIP32** spec) used for
     /// calculating extended private keys.
     static let CurveOrder: BigUInt = BigUInt("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", radix: 16)!
+    static let PointG    : BigUInt = BigUInt("0279BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", radix: 16)!
 }
 
