@@ -100,7 +100,7 @@ func _GeneratePublicKey(data: Data, compressed: Bool) -> Result<Data, KeyDerivat
     do {
         var privateKey: [UInt8] = Array(data)
         let publicKey  = try _CreatePublicKey(ctx: ctx, &privateKey)
-        let pubKeyData = try _SerializePublicKey(ctx: ctx, publicKey)
+        let pubKeyData = try _SerializePublicKey(ctx: ctx, publicKey: publicKey, compressed: compressed)
         return .success(pubKeyData)
     }
     catch let error as KeyDerivatorError {
@@ -124,7 +124,7 @@ func _CreatePublicKey(ctx: OpaquePointer, _ data: inout [UInt8]) throws -> Unsaf
     return publicKey
 }
 
-func _SerializePublicKey(ctx: OpaquePointer, _ publicKey: UnsafeMutablePointer<secp256k1_pubkey>, compressed: Bool = true) throws -> Data {
+func _SerializePublicKey(ctx: OpaquePointer, publicKey: UnsafeMutablePointer<secp256k1_pubkey>, compressed: Bool) throws -> Data {
     let compress       = compressed ? UInt32(SECP256K1_EC_COMPRESSED) : UInt32(SECP256K1_EC_UNCOMPRESSED)
     let outputByteSize = compressed ? 33 : 65
     var publicKeyBytes = [UInt8](repeating: 0, count: outputByteSize)
