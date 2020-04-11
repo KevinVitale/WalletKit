@@ -107,8 +107,26 @@ extension ExtendedKey: CustomStringConvertible {
 }
 
 extension ExtendedKey {
+    /**
+     * The function of an _child extended key_.
+     */
     public enum Derivation {
+        /// Defined as: `CKDpriv((kp, cp), i) -> (ki, ci)`.
+        ///
+        /// The `at` index can be either `normal` or `hardened`.
+        ///
+        /// - note: If a parent public extended key attempts to derive a private
+        ///         child extended key, an exception will be thrown as this is
+        ///         logically not possible.
         case toPrivateKey(at: KeyIndex)
+        
+        /// Defined as: `CKDpub((Kp, cp), i) -> (Ki, ci)`.
+        ///
+        /// ISSUES #1: https://github.com/KevinVitale/WalletKit/issues/1
+        ///
+        /// - note: If a parent public extended key attempts to derive a public
+        ///         child extended key, an exception will be thrown because I'm
+        ///         a complete idiot, and can figure it out.
         case toPublicKey(at: KeyIndex)
         
         fileprivate var index: KeyIndex {
