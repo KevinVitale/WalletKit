@@ -82,18 +82,6 @@ extension ExtendedKey: CustomStringConvertible {
             return data
             }()
         
-        self = try .init(serializedKey: serializedKey, atPath: pathURL)
-    }
-    
-    /**
-     * Create an _extended key_ from a serialized representation, as described
-     * in the **BIP32** spec.
-     *
-     * https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#serialization-format
-     *
-     * - parameter data: The public and private key, in serialized form.
-     */
-    private init(serializedKey: Data, atPath pathURL: URL) throws {
         guard case 77...78 = serializedKey.count else {
             throw Error.invalidSerializedKey(serializedKey)
         }
