@@ -108,20 +108,20 @@ extension ExtendedKey: CustomStringConvertible {
 
 extension ExtendedKey {
     public enum Derivation {
-        case privateKey(at: KeyIndex)
-        case publicKey(at: KeyIndex)
+        case toPrivateKey(at: KeyIndex)
+        case toPublicKey(at: KeyIndex)
         
         var index: KeyIndex {
             switch self {
-            case .privateKey(let index): return index
-            case .publicKey(let index): return index
+            case .toPrivateKey(let index): return index
+            case .toPublicKey(let index): return index
             }
         }
         
         var sector: Sector {
             switch self {
-            case .publicKey  :return .public
-            case .privateKey :return .private
+            case .toPublicKey  :return .public
+            case .toPrivateKey :return .private
             }
         }
         
@@ -133,7 +133,7 @@ extension ExtendedKey {
             }
             
             switch self {
-            case .privateKey(let index): /* To: Private-Key */
+            case .toPrivateKey(let index): /* To: Private-Key */
                 return { parent in
                     func computeChildKey(key: Data, chainCode: Data) -> (key: Data, chainCode: Data) {
                         // TODO: Sanity-check 'BigUInt'
@@ -167,13 +167,13 @@ extension ExtendedKey {
                         throw Error.invalidDerivation(to: self, from: parent)
                     }
             }
-            case .publicKey(let index): /* To: Public-Key */
+            case .toPublicKey(let index): /* To: Public-Key */
                 return { parent in
                     switch parent.network.sector {
                     /// 'private' -> 'public'
                     /// https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki#private-parent-key--public-child-key
                     case .private:
-                        let result   = try Derivation.privateKey(at: index).perform(using: keyDerivator)(parent)
+                        let result   = try Derivation.toPrivateKey(at: index).perform(using: keyDerivator)(parent)
                         let childKey = try keyDerivator.secp256k_1(data: result.key.dropFirst(), compressed: true).get()
                         
                         return (key: childKey, chainCode: result.chainCode)
@@ -194,7 +194,7 @@ extension ExtendedKey {
         }
     }
     
-    func derived(_ derivation: Derivation, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
+    func derive(_ derivation: Derivation, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
         let (key, chainCode) = try derivation.perform(using: keyDerivator)(self)
         
         // Attempt to generate the next `depth`.
@@ -238,11 +238,11 @@ extension ExtendedKey {
     }
     
     public func privateKey(atIndex index: KeyIndex, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
-        try derived(.privateKey(at: index))
+        try derive(.toPrivateKey(at: index))
     }
     
     public func publicKey(atIndex index: KeyIndex, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
-        try derived(.publicKey(at: index))
+        try derive(.toPublicKey(at: index))
     }
 }
 
