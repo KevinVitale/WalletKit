@@ -129,6 +129,7 @@ extension ExtendedKey {
         ///         a complete idiot, and can figure it out.
         case toPublicKey(at: KeyIndex)
         
+        /// The _child extended key_'s index.
         fileprivate var index: KeyIndex {
             switch self {
             case .toPrivateKey(let index): return index
@@ -136,6 +137,7 @@ extension ExtendedKey {
             }
         }
         
+        /// An implied value; suggests the derived _child extended key_ is public or private.
         fileprivate var sector: Sector {
             switch self {
             case .toPublicKey  :return .public
@@ -143,7 +145,15 @@ extension ExtendedKey {
             }
         }
         
-        fileprivate func perform(using keyDerivator: KeyDerivator.Type) -> (_: ExtendedKey) throws -> (key: Data, chainCode: Data) {
+        /**
+         * For a given `Derivation` enum case (either `toPrivateKey(at:)`, or
+         * `toPublicKey(at:)`) calling this will construct the function for which
+         * a `key` and `chainCode` can be derived for a given `ExtendedKey`.
+         *
+         * - parameter keyDerivator: The type of key derivator to use.
+         * - returns: A function which performs derivation for a given `ExtendedKey`.
+         */
+        fileprivate func perform(using keyDerivator: KeyDerivator.Type) -> (_ with: ExtendedKey) throws -> (key: Data, chainCode: Data) {
             let hmac512 = { (chainCode: Data, data: Data) -> Result<(Data,Data), KeyDerivatorError> in
                 keyDerivator
                     .hmac(SHA512.self, key: chainCode, data: data)
@@ -212,6 +222,14 @@ extension ExtendedKey {
         }
     }
     
+    /**
+     * Contructs a new _extended child key_ for the given `derivation`.
+     *
+     * - parameter derivation   : The type of _child extended key_ to derive.
+     * - parameter keyDerivator : The type of `KeyDerivator` to use.
+     *
+     * - returns: A new `ExtendedKey` at the `KeyIndex` associated with `derivation`.
+     */
     private func derive(_ derivation: Derivation, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
         let (key, chainCode) = try derivation.perform(using: keyDerivator)(self)
         
@@ -238,6 +256,8 @@ extension ExtendedKey {
     /**
      * The key converted to public key. If this key is already public, `self` is
      * returned.
+     *
+     * - parameter keyDerivator: The type of `KeyDerivator` to use.
      */
     public func publicKey(using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
         guard case .private = network.sector else {
@@ -255,10 +275,30 @@ extension ExtendedKey {
         )
     }
     
+    /**
+     * Attempts to create a _public child extended key_ at `index`.
+     *
+     * - parameter index        : Where the new key should be derived at.
+     * - parameter keyDerivator : The type of `KeyDerivator` to use.
+     *
+     * - returns: A new _private child_ `ExtendedKey` at `index`.
+     */
     public func privateKey(atIndex index: KeyIndex, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
         try derive(.toPrivateKey(at: index))
     }
     
+    /**
+     * Attempts to create a _public child extended key_ at `index`.
+     *
+     * - parameter index        : Where the new key should be derived at.
+     * - parameter keyDerivator : The type of `KeyDerivator` to use.
+     *
+     * - warning: Although both _normal_ or _hardened_ indexes are valid inputs
+     *            for this function, a public parent key cannot derive a hardened
+     *            public child key, and an attempt to do so throws an exception.
+     *
+     * - returns: A new _private child_ `ExtendedKey` at `index`.
+     */
     public func publicKey(atIndex index: KeyIndex, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
         try derive(.toPublicKey(at: index))
     }
@@ -333,7 +373,7 @@ extension ExtendedKey {
         
         case tooStupidToFigureOutPublicToPublicDerivation
         
-        /// Catches all over errors. Good luck! ¯\_(ツ)_/¯
+        /// Catches over all errors. Good luck! ¯\_(ツ)_/¯
         case unknown(Swift.Error)
     }
 }
