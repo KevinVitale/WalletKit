@@ -111,14 +111,14 @@ extension ExtendedKey {
         case toPrivateKey(at: KeyIndex)
         case toPublicKey(at: KeyIndex)
         
-        var index: KeyIndex {
+        fileprivate var index: KeyIndex {
             switch self {
             case .toPrivateKey(let index): return index
             case .toPublicKey(let index): return index
             }
         }
         
-        var sector: Sector {
+        fileprivate var sector: Sector {
             switch self {
             case .toPublicKey  :return .public
             case .toPrivateKey :return .private
@@ -194,7 +194,7 @@ extension ExtendedKey {
         }
     }
     
-    func derive(_ derivation: Derivation, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
+    private func derive(_ derivation: Derivation, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
         let (key, chainCode) = try derivation.perform(using: keyDerivator)(self)
         
         // Attempt to generate the next `depth`.
