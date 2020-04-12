@@ -12,8 +12,10 @@ public protocol Account: LazyCollectionProtocol where Element == Self, Index == 
 }
 
 extension Account {
-    public var address     :String { try! Coin.address(from: self.privateKey) }
-    public var pathURL     :URL    { self.privateKey.pathURL }
+    public var address :String { try! Coin.address(from: self.privateKey) }
+    public var pathURL :URL    { self.privateKey.pathURL.appendingPathComponent(changeIndex.description) }
+    
+    fileprivate var changeIndex :KeyIndex { isExternal ? .normal(0) : .normal(1) }
 }
 
 extension Account {
@@ -30,7 +32,7 @@ extension Account {
     
     public subscript(position: Index) -> Self {
         try! Self.init(privateKey: try! privateKey
-            .privateKey(atIndex: isExternal ? .normal(0) : .normal(1))
+            .privateKey(atIndex: changeIndex)
             .privateKey(atIndex: position), isExternal: self.isExternal)
     }
 }

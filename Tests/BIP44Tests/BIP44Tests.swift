@@ -42,12 +42,12 @@ final class BIP44Tests: XCTestCase {
         let wallet     = try mnemonic.wallet(coinType: ETH.self).get()
         let account    = try wallet.account(atIndex: 0)
         
-        print(account.privateKey.pathURL)
+        print("\(account.pathURL)/{idx}")
         
         zip(account[.normal(0..<10)], addressesAndPrivateKeys.enumerated()).forEach { (account, itr) in
             let address    = account.address
             let privateKey = "0x" + account.privateKey.key.dropFirst().hexString
-            print("[\(itr.offset)]", address, privateKey)
+            print("[idx: \(itr.offset)]", address, privateKey)
             
             XCTAssertEqual(address.lowercased(), itr.element.0.lowercased())
             XCTAssertEqual(privateKey, itr.element.1)
