@@ -10,6 +10,8 @@ let package = Package(
       .iOS(.v13),
     ],
     products: [
+      .library(name: "WalletKit", targets: ["WalletKit"]),
+      .executable(name: "wallet-cli", targets: ["CLI"]),
     ],
     dependencies: [
         // 🔢 Arbitrary-precision arithmetic in pure Swift
@@ -17,6 +19,9 @@ let package = Package(
         
         // 🔑 Hashing (BCrypt, SHA2, HMAC), encryption (AES), public-key (RSA), and random data generation.
         .package(path: "./Sources/CryptoCore"),
+
+        // 🗞 Straightforward, type-safe argument parsing for Swift
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "0.0.1"),
     ],
     targets: [
         // 📚 -- Mnemonic code for generating deterministic keys
@@ -34,27 +39,37 @@ let package = Package(
         .target(name: "BIP44", dependencies: [
             "BIP32"
         ]),
+
+        // 🧰 -- The main event!
+        .target(name: "WalletKit", dependencies: [
+            "BIP39",
+            "BIP44" /* incl. BIP32 */,
+        ]),
+
+        // 🖥 -- CLI utility tool using 'WalletKit'
+        .target(name: "CLI", dependencies: [
+            "WalletKit",
+            .product(name: "ArgumentParser", package: "swift-argument-parser")
+        ]),
         
         // Testing
         .target(name: "XCTHelpers", dependencies:[
-            .target(name: "BIP39"),
-            .target(name: "BIP32"),
-            .target(name: "BIP44"),
+            "WalletKit",
         ]),
 
         // Test -- BIP39
         .testTarget(name: "BIP39Tests", dependencies: [
-            .target(name: "XCTHelpers")
+            "XCTHelpers",
         ]),
         
         // Test -- BIP32
         .testTarget(name: "BIP32Tests", dependencies: [
-            .target(name: "XCTHelpers")
+            "XCTHelpers",
         ]),
 
         // Test -- BIP44
         .testTarget(name: "BIP44Tests", dependencies: [
-            .target(name: "XCTHelpers")
+            "XCTHelpers",
         ]),
     ]
 )
