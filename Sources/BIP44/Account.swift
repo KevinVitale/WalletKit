@@ -1,28 +1,19 @@
 import Foundation
 import BIP32
 
-public protocol Account: LazyCollectionProtocol, CustomStringConvertible where Element == Self, Index == KeyIndex {
+public protocol Account: LazyCollectionProtocol where Element == Self, Index == KeyIndex {
     associatedtype Coin: CoinType
     
-    var pathURL    :URL         { get }
-    var rootKey    :ExtendedKey { get }
     var isExternal :Bool        { get }
-    
-    init(rootKey: ExtendedKey, isExternal: Bool) throws
+    var privateKey :ExtendedKey { get }
+    var address    :String      { get }
+
+    init(privateKey: ExtendedKey, isExternal: Bool) throws
 }
 
 extension Account {
-    public var description: String {
-        self.rootKey.description
-    }
-    
-    public var address: String {
-        try! Coin.address(from: self.rootKey)
-    }
-    
-    public var pathURL: URL {
-        self.rootKey.pathURL
-    }
+    public var address     :String { try! Coin.address(from: self.privateKey) }
+    public var pathURL     :URL    { self.privateKey.pathURL }
 }
 
 extension Account {
@@ -38,8 +29,9 @@ extension Account {
     }
     
     public subscript(position: Index) -> Self {
-        try! Self.init(rootKey: try! rootKey
+        try! Self.init(privateKey: try! privateKey
             .privateKey(atIndex: isExternal ? .normal(0) : .normal(1))
             .privateKey(atIndex: position), isExternal: self.isExternal)
     }
 }
+

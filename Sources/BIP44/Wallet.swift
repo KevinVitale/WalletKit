@@ -8,40 +8,48 @@ public struct Wallet<Coin: CoinType> {
     }
     
     public var rootKey: ExtendedKey
-    
-    public func account(atIndex index: UInt32, change internal: Bool = false) throws -> some Account {
-        switch `internal` {
-        case false:
-            return try ExternalAccount<Coin>(rootKey: try self.rootKey
-                .privateKey(atIndex: .hardened(44))
-                .privateKey(atIndex: .hardened(Coin.id))
-                .privateKey(atIndex: .hardened(index))
-            )
-        case true:
-            fatalError("Not implemented yet (\"InternalAccount<Coin>\")")
+}
+
+extension Wallet {
+    private struct Account: BIP44.Account {
+        init(privateKey: ExtendedKey, isExternal: Bool) throws {
+            self.privateKey = privateKey
+            self.isExternal = isExternal
+            self.address    = try Coin.address(from: privateKey)
         }
+        
+        let address     :String
+        let isExternal  :Bool
+        let privateKey  :ExtendedKey
+    }
+    
+    public func account(atIndex index: UInt32, isExternal external: Bool = true) throws -> some BIP44.Account {
+        return try Account(privateKey: try self.rootKey
+                            .privateKey(atIndex: .hardened(44))
+                            .privateKey(atIndex: .hardened(Coin.id))
+                            .privateKey(atIndex: .hardened(index)),
+                           isExternal: external)
     }
 }
 
 extension Wallet {
-    public init(seedPhrase phrase: String, passphrase: String = "", seedDerivator: SeedDerivator.Type = DefaultSeedDerivator.self, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws {
-        let mnemonic = try Mnemonic(seedPhrase: phrase)
-        try self.init(mnemonic: mnemonic, passphrase: passphrase, version: .mainnet(.private), seedDerivator: seedDerivator, using: keyDerivator)
+    public init<Entropy: EntropyGenerator>(entropy: Entropy, passphrase: String = "", version network: Network, seedDerivator: SeedDerivator.Type = DefaultSeedDerivator.self, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws {
+        self = try Mnemonic(entropy: entropy)
+            .rootKey(passphrase    :passphrase,
+                     version       :network,
+                     seedDerivator :seedDerivator,
+                     using         :keyDerivator)
+            .map(Wallet.init)
+            .get()
     }
 
-    public init(mnemonic: Mnemonic, passphrase: String = "", version network: Network, seedDerivator: SeedDerivator.Type = DefaultSeedDerivator.self, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws {
-        let rootKey = mnemonic.rootKey(passphrase: passphrase, version: network, seedDerivator: seedDerivator, using: keyDerivator)
-        self.init(withRootKey: try rootKey.get())
-    }
-    
     public init(seedData seed: Data, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws {
         let rootKey = try ExtendedKey(seedData: seed, version: .mainnet(.private), using: keyDerivator)
         self.init(withRootKey: rootKey)
     }
     
     public init(seedHexString seed: String, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws {
-        let rootKey = try ExtendedKey(seedData: try Data(hexString: seed), version: .mainnet(.private), using: keyDerivator)
-        self.init(withRootKey: rootKey)
+        try self.init(seedData: try Data(hexString: seed), using: keyDerivator)
     }
 }
 

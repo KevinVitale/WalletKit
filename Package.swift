@@ -56,11 +56,6 @@ let package = Package(
         .testTarget(name: "BIP44Tests", dependencies: [
             .target(name: "XCTHelpers")
         ]),
-
-        // Test -- WalletKit 
-        .testTarget(name: "WalletKitTests", dependencies: [
-            .target(name: "XCTHelpers"),
-        ]),
     ]
 )
 
