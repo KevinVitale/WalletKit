@@ -25,6 +25,12 @@ extension Int: EntropyGenerator {
     static var wordCounts: [Int] {
         [ 12, 15, 18, 21, 24 ]
     }
+    
+    public static var weakest   : Int { 128 }
+    public static var weak      : Int { 160 }
+    public static var medium    : Int { 192 }
+    public static var strong    : Int { 224 }
+    public static var strongest : Int { 256 }
 }
 
 extension EntropyGenerator where Self: StringProtocol {
