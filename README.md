@@ -5,6 +5,15 @@
 - **iOS**, v13+;
 - **Linux**
 
+## Adding `WalletKit` as a Dependency
+To use the `WalletKit` library in a Swift Package Manager (SPM) project, add the following line to the _dependencies_ in you `Package.swift` file:
+    
+```swift
+.package(url: "https://github.com/apple/swift-argument-parser", from: "0.0.1"),
+```
+
+The `WalletKit` library is under active development, and while attempts are made to maintain source-stability, this is not guaranteed between minor versions. You may specify `.upToNextMinor(from:)`, instead of `from(_:)`, if you need to be at a specific version.
+
 ## Usage
 
 ```swift
