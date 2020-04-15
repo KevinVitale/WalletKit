@@ -2,38 +2,36 @@ import BIP32
 import Base58
 
 public protocol CoinType {
-    static var id     :UInt32 { get }
-    static var symbol :String { get }
+    var id     :UInt32 { get }
+    var symbol :String { get }
     
-    static func address(from privateKey: ExtendedKey) throws -> String
+    func address(for privateKey: ExtendedKey, using keyDerivator: KeyDerivator.Type) throws -> String
 }
 
-public struct BTC: CoinType {
-    public static var id     :UInt32 = 00
-    public static var symbol :String = "BTC"
+extension CoinType {
+    public var index: KeyIndex { .hardened(id) }
+}
+
+public struct AnyCoinType: CoinType {
+    public let symbol :String
+    public let id     :UInt32
     
-    public static func address(from privateKey: ExtendedKey) throws-> String {
-        return try privateKey.publicKey().key.hexString
-    }
-    
-    public struct Testnet: CoinType {
-        public static var id     :UInt32 = 01
-        public static var symbol :String = ""
-        
-        public static func address(from privateKey: ExtendedKey) throws-> String {
-            try BTC.address(from: privateKey)
+    public func address(for privateKey: ExtendedKey, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> String {
+        switch symbol {
+        case "eth", "ETH":
+            return try keyDerivator
+                .secp256k_1(data: privateKey.key.dropFirst(), compressed: false)
+                .map { "0x" + $0.dropFirst().keccak256.suffix(20).hexString }
+                .get()
+        default:
+            return privateKey.key.hexString
         }
     }
 }
 
-public struct ETH: CoinType {
-    public static var id     :UInt32 = 60
-    public static var symbol :String = "ETH"
+extension AnyCoinType {
+    public static var ETH :AnyCoinType { AnyCoinType(symbol: "ETH", id: 60) }
+    public static var BTC :AnyCoinType { AnyCoinType(symbol: "BTC", id: 00) }
     
-    public static func address(from privateKey: ExtendedKey) throws -> String {
-        try DefaultKeyDerivator
-            .secp256k_1(data: privateKey.key.dropFirst(), compressed: false)
-            .map { "0x" + $0.dropFirst().keccak256.suffix(20).hexString }
-            .get()
-    }
+    public static var TestNet :some CoinType { AnyCoinType(symbol: "", id: 01) }
 }
