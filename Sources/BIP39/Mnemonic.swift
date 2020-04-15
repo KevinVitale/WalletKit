@@ -56,7 +56,16 @@ public struct Mnemonic: Equatable {
 }
 
 extension Mnemonic {
-    public init(seedPhrase phrase: String) throws {
-        try self.init(words: phrase.split(separator: " "))
+    public init(seedPhrase phrase: String?) throws {
+        if let phrase = phrase {
+            try self.init(words: phrase.split(separator: " "))
+        }
+        else {
+            try self.init()
+        }
+    }
+    
+    public init(strength: Int = .strongest, in vocabulary: WordList = .english) throws {
+        try self.init(entropy: strength, in: vocabulary)
     }
 }
