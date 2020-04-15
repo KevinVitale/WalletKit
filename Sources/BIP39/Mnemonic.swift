@@ -17,7 +17,7 @@ public struct Mnemonic: Equatable {
      *
      * - parameter words: An array of words.
      */
-    public init<Words: Collection>(words: Words) throws where Words.Element: StringProtocol {
+    fileprivate init<Words: Collection>(words: Words) throws where Words.Element: StringProtocol {
         guard Int.wordCounts.contains(words.count) else {
             throw SeedDerivatorError.seedPhraseInvalid(words.joined(separator: " "))
         }
