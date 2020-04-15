@@ -27,7 +27,7 @@ public enum Network: RawRepresentable, Codable, CustomStringConvertible {
     case mainnet(Sector)
     case testnet(Sector)
 
-    var sector: Sector {
+    public var sector: Sector {
         switch self {
         case .mainnet(let sector): return sector
         case .testnet(let sector): return sector
