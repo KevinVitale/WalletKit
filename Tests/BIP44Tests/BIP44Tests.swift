@@ -4,9 +4,8 @@ final class BIP44Tests: XCTestCase {
     
     func testMultiAccountHierarchyFromMnemonic() throws {
         let seedPhrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
-        let mnemonic   = try Mnemonic(seedPhrase: seedPhrase)
-        let wallet     = try mnemonic.wallet(coinType: BTC.self, passphrase: "TREZOR").get()
-        let account    = try wallet.account(atIndex: 0)
+        let wallet     = try Mnemonic(seedPhrase: seedPhrase).createWallet(passphrase: "TREZOR")
+        let account    = try wallet.account(coinType: .ETH, atIndex: 0)
         
         account[.hardened(0..<10)].forEach {
             print($0.address, $0.pathURL)
@@ -15,8 +14,8 @@ final class BIP44Tests: XCTestCase {
     
     func testMultiAccountHierarchyFromSeedHexString() throws {
         let seed     = "fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542"
-        let wallet   = try Wallet<BTC>(seedHexString: seed)
-        let account  = try wallet.account(atIndex: 0)
+        let wallet   = Wallet(withRootKey: try ExtendedKey(seedHexString: seed, version: .mainnet(.private)))
+        let account  = try wallet.account(coinType: .ETH, atIndex: 0)
         
         account[.hardened(0..<10)].forEach {
             print($0.address, $0.pathURL)
@@ -39,8 +38,8 @@ final class BIP44Tests: XCTestCase {
         ]
 
         let mnemonic   = try Mnemonic(seedPhrase: seedPhrase)
-        let wallet     = try mnemonic.wallet(coinType: ETH.self).get()
-        let account    = try wallet.account(atIndex: 0)
+        let wallet     = try mnemonic.createWallet()
+        let account    = try wallet.account(coinType: .ETH, atIndex: 0)
         
         print("\(account.pathURL)/{idx}")
         
