@@ -21,12 +21,12 @@ extension WalletProtocol {
     }
 }
 
-struct Wallet: WalletProtocol {
-    init(withRootKey rootKey: ExtendedKey) {
+public struct Wallet: WalletProtocol {
+    public init(withRootKey rootKey: ExtendedKey) {
         self.rootKey = rootKey
     }
     
-    let rootKey: ExtendedKey
+    public let rootKey: ExtendedKey
 }
 
 enum WalletError: Error {
