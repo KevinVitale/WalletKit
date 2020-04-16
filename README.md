@@ -19,7 +19,7 @@ The `WalletKit` library is under active development, and while attempts are made
 ```swift
 import WalletKit
 
-let wallet  = try Mnemonic().wallet()
+let wallet  = try Mnemonic().createWallet()
 let account = try wallet.account(coinType: .ETH, atIndex: 0)
 
 account[.normal(0..<10)].forEach { 
