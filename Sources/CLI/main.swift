@@ -9,7 +9,7 @@ struct CLI: ParsableCommand {
     var passphrase: String?
     
     func run() throws {
-        let wallet     = try Mnemonic(seedPhrase: seedPhrase).wallet(passphrase: passphrase ?? "")
+        let wallet     = try Mnemonic(seedPhrase: seedPhrase).createWallet(passphrase: passphrase ?? "")
         let account    = try wallet.account(coinType: .ETH, atIndex: 0)
         
         account[.normal(0..<10)].forEach { log(account: $0) }
