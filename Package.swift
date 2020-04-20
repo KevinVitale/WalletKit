@@ -11,7 +11,6 @@ let package = Package(
     ],
     products: [
       .library(name: "WalletKit", targets: ["WalletKit"]),
-      .executable(name: "wallet-cli", targets: ["CLI"]),
     ],
     dependencies: [
         // 🔢 Arbitrary-precision arithmetic in pure Swift
@@ -43,12 +42,6 @@ let package = Package(
             "BIP44" /* incl. BIP32 */,
         ]),
 
-        // 🖥 -- CLI utility tool using 'WalletKit'
-        .target(name: "CLI", dependencies: [
-            "WalletKit",
-            .product(name: "ArgumentParser", package: "swift-argument-parser")
-        ]),
-        
         // Testing
         .target(name: "XCTHelpers", dependencies:[
             "WalletKit",
