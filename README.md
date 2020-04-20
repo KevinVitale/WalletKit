@@ -5,6 +5,9 @@
 - **iOS**, v13+;
 - **Linux**
 
+### CLI Utility
+[This CLI utility](https://github.com/KevinVitale/WalletKitCLI) is cross-platform, and demonstrates a portion of this framework's functionality.
+
 ## Adding `WalletKit` as a Dependency
 To use the `WalletKit` library in a Swift Package Manager (SPM) project, add the following line to the _dependencies_ in you `Package.swift` file:
     
