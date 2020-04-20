@@ -19,9 +19,6 @@ let package = Package(
         
         // 🔑 Hashing (BCrypt, SHA2, HMAC), encryption (AES), public-key (RSA), and random data generation.
         .package(path: "./Sources/CryptoCore"),
-
-        // 🗞 Straightforward, type-safe argument parsing for Swift
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "0.0.1"),
     ],
     targets: [
         // 📚 -- Mnemonic code for generating deterministic keys
