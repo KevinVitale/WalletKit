@@ -13,9 +13,13 @@ public protocol AccountProtocol: LazyCollectionProtocol where Element == Self, I
 }
 
 extension AccountProtocol {
-    public var pathURL :URL    { self.privateKey.pathURL.appendingPathComponent(changeIndex.description) }
+    public var pathURL: URL {
+        self.privateKey.pathURL.appendingPathComponent(changeIndex.description)
+    }
     
-    fileprivate var changeIndex :KeyIndex { isExternal ? .normal(0) : .normal(1) }
+    fileprivate var changeIndex: KeyIndex {
+        isExternal ? .normal(0) : .normal(1)
+    }
     
     public var startIndex :Index { .min }
     public var endIndex   :Index { .max }
