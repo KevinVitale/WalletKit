@@ -80,7 +80,7 @@ extension ExtendedKey: CustomStringConvertible {
             data += key
             
             return data
-            }()
+        }()
         
         guard case 77...78 = serializedKey.count else {
             throw Error.invalidSerializedKey(serializedKey)
