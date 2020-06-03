@@ -169,7 +169,9 @@ extension ExtendedKey {
                         childKeyNum    += BigUInt(key)
                         childKeyNum    %= .CurveOrder
                         
-                        let childKey = Data([0x00]) + childKeyNum.serialize()
+                        let numData  = childKeyNum.serialize()
+                        var childKey = Data(repeating: 0, count: 33)
+                        childKey[max(1, (33-numData.count))...] = numData
                         
                         return (key: childKey, chainCode: chainCode)
                     }
