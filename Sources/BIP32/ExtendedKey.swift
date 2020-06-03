@@ -283,7 +283,7 @@ extension ExtendedKey {
      *
      * - returns: A new _private child_ `ExtendedKey` at `index`.
      */
-    public func privateKey(atIndex index: KeyIndex, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
+    public func privateKey(atIndex index: KeyIndex) throws -> ExtendedKey {
         try derive(.toPrivateKey(at: index))
     }
     
@@ -299,7 +299,7 @@ extension ExtendedKey {
      *
      * - returns: A new _private child_ `ExtendedKey` at `index`.
      */
-    public func publicKey(atIndex index: KeyIndex, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws -> ExtendedKey {
+    public func publicKey(atIndex index: KeyIndex) throws -> ExtendedKey {
         try derive(.toPublicKey(at: index))
     }
 }
