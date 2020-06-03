@@ -13,10 +13,10 @@ extension WalletProtocol {
         try Account(
             coinType: coinType,
             privateKey: try self.rootKey
-                .privateKey(atIndex: .hardened(44))
-                .privateKey(atIndex: .hardened(coinType.id))
-                .privateKey(atIndex: .hardened(index)),
-            isExternal: external
+                .privateKey(atIndex: .hardened(44))             // Purpose
+                .privateKey(atIndex: .hardened(coinType.id))    // Coin
+                .privateKey(atIndex: .hardened(index))          // Account
+                .privateKey(atIndex: .normal(external ? 0 : 1)) // Change
         )
     }
 }
