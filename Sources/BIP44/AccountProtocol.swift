@@ -36,6 +36,7 @@ extension AccountProtocol {
 }
 
 struct Account: AccountProtocol {
+    typealias Index = KeyIndex
     init(coinType: AnyCoinType, privateKey: ExtendedKey) throws {
         self.address    = try coinType.address(for: privateKey)
         self.coinType   = coinType
