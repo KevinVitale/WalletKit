@@ -52,4 +52,44 @@ final class BIP44Tests: XCTestCase {
             XCTAssertEqual(privateKey, itr.element.1)
         }
     }
+
+    func testNewHDWallet() throws {
+        let mnemonic = try Mnemonic()
+        print(mnemonic.phrase)
+
+        let accounts = try mnemonic.createWallet().account(coinType: .ETH, atIndex: 0)
+        accounts[.normal(0..<10)].enumerated().forEach { (index, account) in
+            let address = account.address
+            let privateKey = "0x" + account.privateKey.key.dropFirst().hexString
+
+            print("[idx: \(index)]", address, privateKey)
+
+        }
+    }
+
+    func testSeedPhrase() throws {
+        let seedPhrases = [
+            try WordList.english.randomWords(withEntropy: Int.strongest).joined(separator: " "),
+            try WordList.japanese.randomWords(withEntropy: Int.strongest).joined(separator: " "),
+            try WordList.chinese.randomWords(withEntropy: Int.strongest).joined(separator: " ")
+        ]
+
+        seedPhrases.forEach { print($0) }
+
+        let accounts = try seedPhrases
+            .map(Mnemonic.init(seedPhrase:))
+            .map({ try $0.createWallet() })
+            .map({ try $0.account(coinType: .ETH, atIndex: 0) })
+            .map({ $0[.normal(0..<2)] })
+            .flatMap({
+                $0.enumerated().map { (index, account) -> (address: String, privateKey: String) in
+                    let address = account.address
+                    let privateKey = "0x" + account.privateKey.key.dropFirst().hexString
+                    return (address, privateKey)
+                }
+            })
+        accounts.forEach {
+            print($0)
+        }
+    }
 }
