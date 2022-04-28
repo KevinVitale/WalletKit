@@ -92,4 +92,16 @@ final class BIP44Tests: XCTestCase {
             print($0)
         }
     }
+
+  func testImportSeedBytesDirectly() throws {
+    let seedPhrase = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    let hexString  = try Mnemonic(seedPhrase: seedPhrase).seed().get().hexString
+    let wallet     = try Wallet(seedHexString: hexString, version: .mainnet(.private))
+    let account    = try wallet.account(coinType: .ETH, atIndex: 0)
+    account[.normal(0..<1)].enumerated().forEach { (index, account) in
+      let address = account.address
+      let privateKey = "0x" + account.privateKey.key.dropFirst().hexString
+      print("[idx: \(index)]", address, privateKey)
+    }
+  }
 }

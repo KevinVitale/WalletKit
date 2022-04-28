@@ -9,6 +9,17 @@ public protocol WalletProtocol {
 }
 
 extension WalletProtocol {
+  public init(seedData masterSeed: Data, version network: Network, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws {
+    let extendedKey = try ExtendedKey(seedData: masterSeed, version: network, using: keyDerivator)
+    self = Self.init(withRootKey: extendedKey)
+  }
+
+  public init(seedHexString hexString: String, version network: Network, using keyDerivator: KeyDerivator.Type = DefaultKeyDerivator.self) throws {
+    self = try Self.init(seedData: try Data(hexString: hexString), version: network, using: keyDerivator)
+  }
+}
+
+extension WalletProtocol {
     public func account(coinType: AnyCoinType, atIndex index: KeyIndex.RawValue, isExternal external: Bool = true) throws -> some AccountProtocol {
         try Account(
             coinType: coinType,
